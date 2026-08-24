@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FD Express — Gas Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#1c2433;--border:#2d3748;--accent:#e8a020;--accent2:#f0c040;--blue:#2e75b6;--red:#e05252;--green:#4caf7d;--purple:#9b59b6;--text:#e6edf3;--text2:#8b949e;--text3:#6e7681;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;min-height:100vh;}
+
+/* LOADING */
+#loadingScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px;}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* LOGIN */
+#loginScreen{display:none;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 40%,#1a2535 0%,var(--bg) 70%);}
+.login-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;width:380px;max-width:92vw;}
+.login-logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:30px;letter-spacing:3px;color:var(--accent);text-align:center;margin-bottom:4px;}
+.login-sub{text-align:center;color:var(--text3);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:28px;}
+.lf{margin-bottom:14px;}
+.lf label{display:block;font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:5px;}
+.lf input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:10px 12px;font-family:'Barlow',sans-serif;font-size:14px;}
+.lf input:focus{outline:none;border-color:var(--accent);}
+.lerr{color:var(--red);font-size:12px;text-align:center;margin-top:8px;display:none;}
+.role-badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.ra{background:rgba(232,160,32,.15);color:var(--accent);border:1px solid rgba(232,160,32,.3);}
+.rs{background:rgba(155,89,182,.15);color:var(--purple);border:1px solid rgba(155,89,182,.3);}
+.rd{background:rgba(76,175,125,.15);color:var(--green);border:1px solid rgba(76,175,125,.3);}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#0a0f1a 0%,#1a2535 100%);border-bottom:2px solid var(--accent);padding:0 24px;display:flex;align-items:center;gap:14px;height:56px;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:19px;letter-spacing:2px;color:var(--accent);}
+.logo span{color:var(--text3);font-weight:400;font-size:10px;letter-spacing:1px;display:block;margin-top:-3px;}
+nav{display:flex;gap:2px;}
+nav button{background:transparent;border:1px solid transparent;color:var(--text2);padding:5px 13px;border-radius:4px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;transition:all .15s;}
+nav button.active,nav button:hover:not(:disabled){background:var(--surface2);border-color:var(--border);color:var(--text);}
+nav button.active{border-color:var(--accent);color:var(--accent);}
+nav button:disabled{opacity:.3;cursor:not-allowed;}
+.ubar{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px;}
+.uname{color:var(--text);font-weight:600;}
+.lout{background:none;border:1px solid var(--border);color:var(--text3);padding:4px 10px;border-radius:4px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:11px;}
+.lout:hover{color:var(--red);border-color:var(--red);}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+/* LAYOUT */
+.container{max-width:1400px;margin:0 auto;padding:18px 24px;}
+.tab-content{display:none;}.tab-content.active{display:block;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:13px 15px;position:relative;overflow:hidden;}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);}
+.sc.b::before{background:var(--blue);}
+.sc.g::before{background:var(--green);}
+.sc.p::before{background:var(--purple);}
+.sl{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:5px;}
+.sv{font-family:'Barlow Condensed',sans-serif;font-size:23px;font-weight:700;}
+.ss{font-size:11px;color:var(--text3);margin-top:2px;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 15px;border-radius:4px;border:none;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;transition:all .15s;}
+.bp{background:var(--accent);color:#000;}.bp:hover{background:var(--accent2);}
+.bs{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}.bs:hover{color:var(--text);}
+.bd{color:var(--red);border:1px solid var(--red);background:transparent;}.bd:hover{background:var(--red);color:#fff;}
+.bsm{padding:4px 10px;font-size:11px;}
+
+/* FORM */
+.ef{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:18px;}
+.fg{display:grid;grid-template-columns:repeat(9,1fr);gap:9px;align-items:end;}
+.fgrp{display:flex;flex-direction:column;gap:4px;}
+.fgrp label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);}
+.fgrp input,.fgrp select{background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:7px 9px;font-family:'Barlow',sans-serif;font-size:13px;width:100%;}
+.fgrp input:focus,.fgrp select:focus{outline:none;border-color:var(--accent);}
+.fgrp.locked input{background:rgba(46,117,182,.06);border-color:rgba(46,117,182,.3);color:var(--text2);cursor:not-allowed;}
+.fgrp.locked label::after{content:' 🔒';}
+
+/* TABLE */
+.tw{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--surface2);}
+th{padding:9px 11px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
+th:hover{color:var(--text);}
+th.lc{color:var(--blue);}
+tbody tr{border-bottom:1px solid rgba(45,55,72,.5);transition:background .1s;}
+tbody tr:hover{background:rgba(255,255,255,.03);}
+tbody tr:last-child{border-bottom:none;}
+td{padding:7px 11px;font-size:13px;white-space:nowrap;}
+td.lc{color:var(--text2);background:rgba(46,117,182,.04);}
+td.pl{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:var(--accent);letter-spacing:1px;}
+td.dr{color:var(--green);font-weight:500;}
+td.dt{color:var(--text2);}
+td.mi{color:var(--green);font-weight:600;}
+td.co{color:var(--accent);font-weight:600;}
+.dbtn{background:none;border:none;color:var(--text3);cursor:pointer;padding:2px 5px;border-radius:3px;}
+.dbtn:hover{color:var(--red);}
+
+/* FILTER */
+.fb{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+.fb select,.fb input[type=date]{background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:6px 9px;font-family:'Barlow',sans-serif;font-size:13px;}
+
+/* SUMMARY ROWS */
+.wh td{background:#1a2a40;color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;padding:7px 11px;font-size:12px;}
+.tr td{background:rgba(46,117,182,.12);font-weight:600;}
+.gr td{background:rgba(46,117,182,.25);font-weight:700;color:var(--accent);}
+.wtr td{background:rgba(45,55,72,.6);font-weight:600;font-size:12px;color:var(--text2);}
+
+/* MODAL */
+.mb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
+.mb.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:26px;width:400px;max-width:92vw;max-height:88vh;overflow-y:auto;}
+.modal h3{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;margin-bottom:14px;color:var(--accent);}
+.mfg{margin-bottom:11px;display:flex;flex-direction:column;gap:4px;}
+.mfg label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);}
+.mfg input,.mfg select{background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:8px 10px;font-family:'Barlow',sans-serif;font-size:13px;width:100%;}
+.mbtns{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+
+/* PAGINATION */
+.pg{display:flex;align-items:center;gap:8px;margin-top:12px;justify-content:flex-end;}
+.pg button{background:var(--surface2);border:1px solid var(--border);color:var(--text2);padding:4px 11px;border-radius:4px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:12px;}
+.pg button:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.pg button:disabled{opacity:.4;cursor:default;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--green);border-radius:8px;padding:12px 20px;font-size:13px;color:var(--green);z-index:300;transform:translateY(80px);opacity:0;transition:all .3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.err{border-color:var(--red);color:var(--red);}
+
+.sh{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.st{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text2);}
+.st strong{color:var(--accent);}
+.rc{font-size:11px;color:var(--text3);}
+.ad{text-align:center;padding:60px;color:var(--text3);}
+.ad h2{font-family:'Barlow Condensed',sans-serif;font-size:26px;color:var(--red);margin-bottom:10px;}
+@media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr);}.fg{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <div style="color:var(--text3);font-size:13px;">Connecting to server...</div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">FD EXPRESS</div>
+    <div class="login-sub">Gas Tracker System</div>
+    <div class="lf"><label>Username</label><input type="text" id="lU" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="lf"><label>Password</label><input type="password" id="lP" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn bp" style="width:100%;justify-content:center;padding:11px;margin-top:4px;" onclick="doLogin()">Sign In</button>
+    <div class="lerr" id="lErr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen" style="display:none;">
+  <header>
+    <div class="logo">FD Express<span>Gas Tracker</span></div>
+    <nav>
+      <button id="nEntry" class="active" onclick="switchTab('entry')">Quick Entry</button>
+      <button id="nDaily" onclick="switchTab('daily')">Daily Summary</button>
+      <button id="nWeekly" onclick="switchTab('weekly')">Weekly Analysis</button>
+      <button id="nVehicles" onclick="switchTab('vehicles')">Vehicles</button>
+      <button id="nUsers" onclick="switchTab('users')">Users</button>
+    </nav>
+    <div class="ubar">
+      <span class="live-dot" title="Live — all computers share this data"></span>
+      <span id="hBadge"></span>
+      <span class="uname" id="hName"></span>
+      <button class="lout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- QUICK ENTRY -->
+    <div class="tab-content active" id="tab-entry">
+      <div class="stats" id="statsEl"></div>
+      <div class="ef">
+        <div class="fg">
+          <div class="fgrp"><label>Date</label><input type="date" id="fDate"></div>
+          <div class="fgrp"><label>Driver</label><select id="fDriver"><option value="">— Select —</option></select></div>
+          <div class="fgrp"><label>Plate</label><select id="fPlate" onchange="fillPrev()"><option value="">— Select —</option></select></div>
+          <div class="fgrp"><label>Prev Miles (E)</label><input type="number" id="fPrev" step="1"></div>
+          <div class="fgrp"><label>Curr Miles (F)</label><input type="number" id="fCurr" step="1" oninput="calcMiles()"></div>
+          <div class="fgrp locked" id="gGrp"><label>Miles (G)</label><input type="number" id="fMiles" readonly></div>
+          <div class="fgrp"><label>Liters (H)</label><input type="number" id="fLiters" step="0.001" oninput="calcTotal()"></div>
+          <div class="fgrp"><label>Price/L (I)</label><input type="number" id="fPrice" step="0.001" oninput="calcTotal()"></div>
+          <div class="fgrp locked" id="jGrp"><label>Total Cost (J)</label><input type="number" id="fTotal" readonly></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn bp" id="addBtn" onclick="addEntry()">+ Add Entry</button>
+          <button class="btn bs" onclick="clearForm()">Clear</button>
+        </div>
+      </div>
+      <div class="sh">
+        <span class="st">Entry <strong>Log</strong></span>
+        <div class="fb" style="margin:0;flex:1;">
+          <select id="flPlate" onchange="renderLog()"><option value="">All Plates</option></select>
+          <select id="flDriver" onchange="renderLog()"><option value="">All Drivers</option></select>
+          <input type="date" id="flFrom" onchange="renderLog()">
+          <input type="date" id="flTo" onchange="renderLog()">
+          <button class="btn bs bsm" onclick="clearFilters()">Clear</button>
+          <span class="rc" id="rcEl"></span>
+        </div>
+        <button class="btn bs bsm" onclick="exportCSV()">Export CSV</button>
+        <button class="btn bs bsm" onclick="loadAll()">🔄 Refresh</button>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr>
+            <th onclick="sortBy('date')">Date</th>
+            <th onclick="sortBy('driver')">Driver</th>
+            <th onclick="sortBy('plate')">Plate</th>
+            <th>Prev Miles</th><th>Curr Miles</th>
+            <th class="lc">Miles G 🔒</th>
+            <th>Liters</th><th>Price/L</th>
+            <th class="lc">Total J 🔒</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="logBody"></tbody>
+        </table>
+      </div>
+      <div class="pg" id="pgEl"></div>
+    </div>
+
+    <!-- DAILY SUMMARY -->
+    <div class="tab-content" id="tab-daily">
+      <div class="sh"><span class="st">Daily <strong>Summary</strong></span></div>
+      <div class="tw"><table>
+        <thead><tr><th>Date</th><th>Day</th><th>Vehicles</th><th>Total Miles</th><th>Total Expenditure</th><th>Avg/Vehicle</th></tr></thead>
+        <tbody id="dailyBody"></tbody>
+      </table></div>
+    </div>
+
+    <!-- WEEKLY ANALYSIS -->
+    <div class="tab-content" id="tab-weekly">
+      <div class="sh"><span class="st">Weekly <strong>Analysis</strong></span></div>
+      <div class="tw"><table>
+        <thead><tr><th>Week Start</th><th>Plate</th><th>Transactions</th><th>Miles</th><th>Liters</th><th>Cost</th><th>MPL</th><th>Cost/Day</th><th>Miles/Day</th></tr></thead>
+        <tbody id="weeklyBody"></tbody>
+      </table></div>
+    </div>
+
+    <!-- VEHICLES -->
+    <div class="tab-content" id="tab-vehicles">
+      <div class="sh">
+        <span class="st">Vehicle <strong>Master</strong></span>
+        <button class="btn bp bsm" id="addVBtn" onclick="openM('mvM')">+ Add Vehicle</button>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Plate</th><th>Description</th><th>Init Miles</th><th>Last Miles</th><th>Total Miles</th><th>Entries</th><th></th></tr></thead>
+        <tbody id="vBody"></tbody>
+      </table></div>
+    </div>
+
+    <!-- USERS -->
+    <div class="tab-content" id="tab-users">
+      <div class="sh">
+        <span class="st">User <strong>Management</strong></span>
+        <button class="btn bp bsm" onclick="openAddUser()">+ Add User</button>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Full Name</th><th>Username</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <tbody id="uBody"></tbody>
+      </table></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="mb" id="mvM">
+  <div class="modal">
+    <h3>Add Vehicle</h3>
+    <div class="mfg"><label>Plate</label><input id="vP" placeholder="e.g. KAB123"></div>
+    <div class="mfg"><label>Description</label><input id="vN" placeholder="e.g. Kia Seltos 2025"></div>
+    <div class="mfg"><label>Initial Miles</label><input id="vM" type="number" placeholder="0"></div>
+    <div class="mbtns">
+      <button class="btn bs" onclick="closeM('mvM')">Cancel</button>
+      <button class="btn bp" onclick="saveVehicle()">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="mb" id="muM">
+  <div class="modal">
+    <h3 id="muT">Add User</h3>
+    <input type="hidden" id="muId">
+    <div class="mfg"><label>Full Name</label><input id="uN"></div>
+    <div class="mfg"><label>Username</label><input id="uU"></div>
+    <div class="mfg"><label>Password</label><input type="password" id="uPw" placeholder="Leave blank to keep existing"></div>
+    <div class="mfg"><label>Role</label>
+      <select id="uR">
+        <option value="driver">Driver — Add entries only</option>
+        <option value="supervisor">Supervisor — Reports + manage vehicles/users</option>
+        <option value="admin">Admin — Full access</option>
+      </select>
+    </div>
+    <div class="mfg"><label>Status</label><select id="uSt"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+    <div class="mbtns">
+      <button class="btn bs" onclick="closeM('muM')">Cancel</button>
+      <button class="btn bp" onclick="saveUser()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════ CONFIG ════════════════════════════
+const API = '';  // same origin — no prefix needed
+
+// ═══════════════════════════ STATE ═════════════════════════════
+let CU=null, vehicles=[], entries=[], users=[];
+let SC='date', SD=-1, PG=1; const PS=50;
+const RL={admin:'Admin',supervisor:'Supervisor',driver:'Driver'};
+const RC={admin:'ra',supervisor:'rs',driver:'rd'};
+const CAN={
+  delEntry:u=>['admin','supervisor'].includes(u?.role),
+  viewReports:u=>['admin','supervisor'].includes(u?.role),
+  manageVeh:u=>['admin','supervisor'].includes(u?.role),
+  manageUsers:u=>u?.role==='admin',
+  unlockCols:u=>u?.role==='admin',
+};
+
+// ═══════════════════════════ API HELPERS ═══════════════════════
+async function api(method, path, body) {
+  const opts = {method, headers:{'Content-Type':'application/json'}};
+  if(body) opts.body = JSON.stringify(body);
+  const res = await fetch(API+path, opts);
+  if(!res.ok) { const e=await res.json().catch(()=>({error:'Error'})); throw new Error(e.error||'Error'); }
+  return res.json();
+}
+
+// ═══════════════════════════ INIT ══════════════════════════════
+async function loadAll() {
+  try {
+    [vehicles, entries, users] = await Promise.all([
+      api('GET','/api/vehicles'),
+      api('GET','/api/entries'),
+      api('GET','/api/users'),
+    ]);
+    renderStats(); renderLog(); fillDropdowns();
+    showToast('Data refreshed');
+  } catch(e) { showToast('Connection error: '+e.message, true); }
+}
+
+window.onload = async () => {
+  document.getElementById('loadingScreen').style.display='flex';
+  try {
+    // Test server connectivity
+    await fetch(API+'/api/vehicles');
+    document.getElementById('loadingScreen').style.display='none';
+    document.getElementById('loginScreen').style.display='flex';
+  } catch {
+    document.getElementById('loadingScreen').innerHTML =
+      '<div style="text-align:center;color:var(--text3);padding:40px;max-width:400px">' +
+      '<div style="color:var(--red);font-size:24px;margin-bottom:12px;">⚠️ Cannot connect to server</div>' +
+      '<p>Make sure the server is running. If you just deployed, wait 30 seconds and refresh.</p></div>';
+  }
+};
+
+// ═══════════════════════════ AUTH ══════════════════════════════
+async function doLogin() {
+  const username=document.getElementById('lU').value.trim();
+  const password=document.getElementById('lP').value;
+  try {
+    const {user} = await api('POST','/api/login',{username,password});
+    CU = user;
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('appScreen').style.display='block';
+    initApp();
+  } catch(e) {
+    document.getElementById('lErr').textContent = e.message;
+    document.getElementById('lErr').style.display='block';
+  }
+}
+
+function doLogout() {
+  CU=null; entries=[]; vehicles=[]; users=[];
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('lU').value=''; document.getElementById('lP').value='';
+}
+
+// ═══════════════════════════ APP INIT ══════════════════════════
+async function initApp() {
+  document.getElementById('hName').textContent = CU.name;
+  document.getElementById('hBadge').innerHTML = `<span class="role-badge ${RC[CU.role]}">${RL[CU.role]}</span>`;
+  ['nDaily','nWeekly'].forEach(id=>document.getElementById(id).disabled=!CAN.viewReports(CU));
+  document.getElementById('nVehicles').disabled=!CAN.manageVeh(CU);
+  document.getElementById('nUsers').disabled=!CAN.manageUsers(CU);
+  if(CAN.unlockCols(CU)) {
+    document.getElementById('gGrp').classList.remove('locked');
+    document.getElementById('jGrp').classList.remove('locked');
+    document.getElementById('fMiles').readOnly=false;
+    document.getElementById('fTotal').readOnly=false;
+  }
+  document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
+  await loadAll();
+  // Auto-select driver name if logged in as driver
+  if(CU.role==='driver') {
+    const s=document.getElementById('fDriver');
+    for(let i=0;i<s.options.length;i++) if(s.options[i].value===CU.name){s.value=CU.name;break;}
+  }
+}
+
+function switchTab(t) {
+  if(['daily','weekly'].includes(t)&&!CAN.viewReports(CU)){showDenied('tab-'+t);return;}
+  if(t==='vehicles'&&!CAN.manageVeh(CU)){showDenied('tab-'+t);return;}
+  if(t==='users'&&!CAN.manageUsers(CU)){showDenied('tab-'+t);return;}
+  document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  const b=document.getElementById('n'+t[0].toUpperCase()+t.slice(1));
+  if(b)b.classList.add('active');
+  if(t==='daily')renderDaily();
+  if(t==='weekly')renderWeekly();
+  if(t==='vehicles')renderVehicles();
+  if(t==='users')renderUsers();
+  if(t==='entry'){renderStats();renderLog();}
+}
+function showDenied(id){document.getElementById(id).innerHTML=`<div class="ad"><h2>Access Restricted</h2><p>Your role (${RL[CU.role]}) cannot view this section.</p></div>`;}
+
+// ═══════════════════════════ DROPDOWNS ═════════════════════════
+function fillDropdowns() {
+  const drvs=users.filter(u=>u.status==='active').sort((a,b)=>a.name.localeCompare(b.name));
+  const plts=vehicles.map(v=>v.plate).sort();
+  ['fDriver','flDriver'].forEach(id=>{
+    const s=document.getElementById(id);const cv=s.value;
+    s.innerHTML=id==='fDriver'?'<option value="">— Select —</option>':'<option value="">All Drivers</option>';
+    drvs.forEach(d=>s.appendChild(new Option(`${d.name} (${RL[d.role]})`,d.name)));
+    if(cv)s.value=cv;
+  });
+  ['fPlate','flPlate'].forEach(id=>{
+    const s=document.getElementById(id);const cv=s.value;
+    s.innerHTML=id==='fPlate'?'<option value="">— Select —</option>':'<option value="">All Plates</option>';
+    plts.forEach(p=>s.appendChild(new Option(p,p)));
+    if(cv)s.value=cv;
+  });
+}
+
+// ═══════════════════════════ ENTRY FORM ════════════════════════
+function fillPrev() {
+  const pl=document.getElementById('fPlate').value; if(!pl)return;
+  const last=[...entries].filter(e=>e.plate===pl).sort((a,b)=>b.date.localeCompare(a.date))[0];
+  document.getElementById('fPrev').value=last?last.currMiles:(vehicles.find(v=>v.plate===pl)?.initMiles||'');
+  calcMiles();
+}
+function calcMiles(){
+  const p=parseFloat(document.getElementById('fPrev').value)||0;
+  const c=parseFloat(document.getElementById('fCurr').value)||0;
+  document.getElementById('fMiles').value=c>p?+(c-p).toFixed(1):''; calcTotal();
+}
+function calcTotal(){
+  const l=parseFloat(document.getElementById('fLiters').value)||0;
+  const p=parseFloat(document.getElementById('fPrice').value)||0;
+  document.getElementById('fTotal').value=l&&p?+(l*p).toFixed(6):'';
+}
+function clearForm(){
+  ['fDriver','fPlate','fPrev','fCurr','fMiles','fLiters','fPrice','fTotal'].forEach(id=>{
+    const el=document.getElementById(id);el.tagName==='SELECT'?el.selectedIndex=0:el.value='';
+  });
+  document.getElementById('fDate').value=new Date().toISOString().slice(0,10);
+  if(CU?.role==='driver'){const s=document.getElementById('fDriver');for(let i=0;i<s.options.length;i++)if(s.options[i].value===CU.name){s.value=CU.name;break;}}
+}
+
+async function addEntry() {
+  const date=document.getElementById('fDate').value;
+  const driver=document.getElementById('fDriver').value;
+  const plate=document.getElementById('fPlate').value;
+  const prev=parseFloat(document.getElementById('fPrev').value)||0;
+  const curr=parseFloat(document.getElementById('fCurr').value)||0;
+  const liters=parseFloat(document.getElementById('fLiters').value)||0;
+  const price=parseFloat(document.getElementById('fPrice').value)||0;
+  if(!date||!plate||!curr){showToast('Date, Plate and Current Miles required',true);return;}
+  const miles=parseFloat(document.getElementById('fMiles').value)||Math.max(0,curr-prev);
+  const total=parseFloat(document.getElementById('fTotal').value)||liters*price;
+  document.getElementById('addBtn').disabled=true;
+  try {
+    const e=await api('POST','/api/entries',{date,driver,plate,prevMiles:Math.round(prev),currMiles:Math.round(curr),miles:+miles.toFixed(1),liters:+liters.toFixed(3),price:+price.toFixed(3),total:+total.toFixed(6),by:CU.username});
+    entries.unshift(e);
+    clearForm(); renderStats(); renderLog(); showToast('Entry saved ✓');
+  } catch(e){showToast(e.message,true);}
+  document.getElementById('addBtn').disabled=false;
+}
+
+async function delEntry(id) {
+  if(!CAN.delEntry(CU))return;
+  if(!confirm('Delete this entry?'))return;
+  try {
+    await api('DELETE',`/api/entries/${id}`);
+    entries=entries.filter(e=>e.id!==id);
+    renderStats(); renderLog(); showToast('Entry deleted');
+  } catch(e){showToast(e.message,true);}
+}
+
+// ═══════════════════════════ STATS ═════════════════════════════
+function renderStats(){
+  const now=new Date(), mon=new Date(now);
+  mon.setDate(now.getDate()-((now.getDay()||7)-1));
+  const wk=entries.filter(e=>e.date>=mon.toISOString().slice(0,10));
+  const tm=entries.reduce((s,e)=>s+(e.miles||0),0);
+  const tc=entries.reduce((s,e)=>s+(e.total||0),0);
+  const ap=new Set(entries.map(e=>e.plate)).size;
+  document.getElementById('statsEl').innerHTML=`
+    <div class="sc"><div class="sl">Total Entries</div><div class="sv">${entries.length.toLocaleString()}</div><div class="ss">all time</div></div>
+    <div class="sc b"><div class="sl">Active Vehicles</div><div class="sv">${ap}</div><div class="ss">with entries</div></div>
+    <div class="sc g"><div class="sl">Total Miles</div><div class="sv">${Math.round(tm).toLocaleString()}</div><div class="ss">all time</div></div>
+    <div class="sc"><div class="sl">Total Spent</div><div class="sv">$${Math.round(tc).toLocaleString()}</div><div class="ss">all time</div></div>
+    <div class="sc p"><div class="sl">This Week</div><div class="sv">${wk.length}</div><div class="ss">$${wk.reduce((s,e)=>s+(e.total||0),0).toFixed(2)} spent</div></div>`;
+}
+
+// ═══════════════════════════ LOG ═══════════════════════════════
+function sortBy(c){SC===c?SD*=-1:(SC=c,SD=-1);renderLog();}
+function clearFilters(){['flPlate','flDriver','flFrom','flTo'].forEach(id=>document.getElementById(id).value='');PG=1;renderLog();}
+function renderLog(){
+  let d=[...entries];
+  const fp=document.getElementById('flPlate').value, fd=document.getElementById('flDriver').value;
+  const ff=document.getElementById('flFrom').value, ft=document.getElementById('flTo').value;
+  if(fp)d=d.filter(e=>e.plate===fp);
+  if(fd)d=d.filter(e=>e.driver===fd);
+  if(ff)d=d.filter(e=>e.date>=ff);
+  if(ft)d=d.filter(e=>e.date<=ft);
+  d.sort((a,b)=>{let av=a[SC]??'',bv=b[SC]??'';return(typeof av==='string'?av.localeCompare(bv):(av-bv))*SD;});
+  document.getElementById('rcEl').textContent=d.length+' records';
+  const pages=Math.ceil(d.length/PS)||1; if(PG>pages)PG=pages;
+  const sl=d.slice((PG-1)*PS,PG*PS), cd=CAN.delEntry(CU);
+  document.getElementById('logBody').innerHTML=sl.map(e=>`
+    <tr>
+      <td class="dt">${e.date}</td>
+      <td class="dr">${e.driver||'—'}</td>
+      <td class="pl">${e.plate}</td>
+      <td>${(e.prevMiles||0).toLocaleString()}</td>
+      <td>${(e.currMiles||0).toLocaleString()}</td>
+      <td class="mi lc">${(e.miles||0).toLocaleString()}</td>
+      <td>${(e.liters||0).toFixed(3)}</td>
+      <td>$${(e.price||0).toFixed(3)}</td>
+      <td class="co lc">$${(e.total||0).toFixed(2)}</td>
+      <td>${cd?`<button class="dbtn" onclick="delEntry('${e.id}')">✕</button>`:''}</td>
+    </tr>`).join('');
+  document.getElementById('pgEl').innerHTML=pages>1?`
+    <button onclick="PG=1;renderLog()" ${PG===1?'disabled':''}>«</button>
+    <button onclick="PG--;renderLog()" ${PG===1?'disabled':''}>‹</button>
+    <span style="font-size:11px;color:var(--text3)">Page ${PG} of ${pages}</span>
+    <button onclick="PG++;renderLog()" ${PG===pages?'disabled':''}>›</button>
+    <button onclick="PG=${pages};renderLog()" ${PG===pages?'disabled':''}>»</button>`:'';
+}
+
+// ═══════════════════════════ DAILY ═════════════════════════════
+function renderDaily(){
+  const days={};
+  entries.forEach(e=>{if(!days[e.date])days[e.date]={date:e.date,count:0,miles:0,cost:0};days[e.date].count++;days[e.date].miles+=e.miles||0;days[e.date].cost+=e.total||0;});
+  const sorted=Object.values(days).sort((a,b)=>a.date.localeCompare(b.date));
+  const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function ws(ds){const d=new Date(ds+'T00:00:00'),dy=d.getDay(),df=dy===0?-6:1-dy,m=new Date(d);m.setDate(d.getDate()+df);return m.toISOString().slice(0,10);}
+  const weeks={};sorted.forEach(d=>{const w=ws(d.date);if(!weeks[w])weeks[w]=[];weeks[w].push(d);});
+  let html='',gM=0,gC=0,gV=0,wn=1;
+  Object.keys(weeks).sort().forEach(w=>{
+    const we=new Date(w+'T00:00:00');we.setDate(we.getDate()+5);
+    html+=`<tr class="wh"><td colspan="6">📅 Week ${wn++} &nbsp; ${w} → ${we.toISOString().slice(0,10)}</td></tr>`;
+    let wM=0,wC=0,wV=0;
+    weeks[w].forEach(d=>{
+      const day=DN[new Date(d.date+'T00:00:00').getDay()];
+      html+=`<tr><td class="dt">${d.date}</td><td>${day}</td><td>${d.count}</td><td class="mi">${Math.round(d.miles).toLocaleString()}</td><td class="co">$${d.cost.toFixed(2)}</td><td>$${d.count?(d.cost/d.count).toFixed(2):'-'}</td></tr>`;
+      wM+=d.miles;wC+=d.cost;wV+=d.count;
+    });
+    html+=`<tr class="tr"><td colspan="2"><strong>WEEK TOTAL</strong></td><td>${wV}</td><td>${Math.round(wM).toLocaleString()}</td><td>$${wC.toFixed(2)}</td><td>$${wV?(wC/wV).toFixed(2):'-'}</td></tr>`;
+    gM+=wM;gC+=wC;gV+=wV;
+  });
+  html+=`<tr class="gr"><td colspan="2"><strong>GRAND TOTAL</strong></td><td>${gV}</td><td>${Math.round(gM).toLocaleString()}</td><td>$${gC.toFixed(2)}</td><td>$${gV?(gC/gV).toFixed(2):'-'}</td></tr>`;
+  document.getElementById('dailyBody').innerHTML=html||'<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text3)">No entries yet.</td></tr>';
+}
+
+// ═══════════════════════════ WEEKLY ════════════════════════════
+function renderWeekly(){
+  function ws(ds){const d=new Date(ds+'T00:00:00'),dy=d.getDay(),df=dy===0?-6:1-dy,m=new Date(d);m.setDate(d.getDate()+df);return m.toISOString().slice(0,10);}
+  const wp={};
+  entries.forEach(e=>{const w=ws(e.date),k=w+'|'+e.plate;if(!wp[k])wp[k]={w,plate:e.plate,t:0,m:0,l:0,c:0};wp[k].t++;wp[k].m+=e.miles||0;wp[k].l+=e.liters||0;wp[k].c+=e.total||0;});
+  const weeks={};Object.values(wp).forEach(r=>{if(!weeks[r.w])weeks[r.w]=[];weeks[r.w].push(r);});
+  let html='',wn=1;
+  Object.keys(weeks).sort().forEach(w=>{
+    const we=new Date(w+'T00:00:00');we.setDate(we.getDate()+5);
+    const rows=weeks[w].sort((a,b)=>a.plate.localeCompare(b.plate));
+    html+=`<tr class="wh"><td colspan="9">Week ${wn++} &nbsp; ${w} → ${we.toISOString().slice(0,10)}</td></tr>`;
+    let tt=0,tm=0,tl=0,tc=0;
+    rows.forEach(r=>{html+=`<tr><td class="dt">${w}</td><td class="pl">${r.plate}</td><td>${r.t}</td><td class="mi">${Math.round(r.m).toLocaleString()}</td><td>${r.l.toFixed(3)}</td><td class="co">$${r.c.toFixed(2)}</td><td>${r.l>0?(r.m/r.l).toFixed(2):'-'}</td><td>$${(r.c/7).toFixed(2)}</td><td>${(r.m/7).toFixed(1)}</td></tr>`;tt+=r.t;tm+=r.m;tl+=r.l;tc+=r.c;});
+    html+=`<tr class="wtr"><td>${w}</td><td><strong>WEEK TOTAL</strong></td><td>${tt}</td><td>${Math.round(tm).toLocaleString()}</td><td>${tl.toFixed(3)}</td><td>$${tc.toFixed(2)}</td><td>${tl>0?(tm/tl).toFixed(2):'-'}</td><td>$${(tc/7).toFixed(2)}</td><td>${(tm/7).toFixed(1)}</td></tr>`;
+  });
+  document.getElementById('weeklyBody').innerHTML=html||'<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text3)">No entries yet.</td></tr>';
+}
+
+// ═══════════════════════════ VEHICLES ══════════════════════════
+function renderVehicles(){
+  const cm=CAN.manageVeh(CU);
+  document.getElementById('addVBtn').style.display=cm?'':'none';
+  document.getElementById('vBody').innerHTML=vehicles.map(v=>{
+    const ve=entries.filter(e=>e.plate===v.plate);
+    const last=[...ve].sort((a,b)=>b.date.localeCompare(a.date))[0];
+    const tm=ve.reduce((s,e)=>s+(e.miles||0),0);
+    return`<tr><td class="pl">${v.plate}</td><td>${v.name||''}</td><td>${(v.initMiles||0).toLocaleString()}</td><td>${last?(last.currMiles||0).toLocaleString():'-'}</td><td class="mi">${Math.round(tm).toLocaleString()}</td><td>${ve.length}</td><td>${cm?`<button class="dbtn" onclick="delVehicle('${v.plate}')">✕</button>`:''}</td></tr>`;
+  }).join('');
+}
+async function saveVehicle(){
+  const plate=document.getElementById('vP').value.trim().toUpperCase();
+  const name=document.getElementById('vN').value.trim();
+  const initMiles=parseInt(document.getElementById('vM').value)||0;
+  if(!plate){showToast('Plate required',true);return;}
+  try {
+    const v=await api('POST','/api/vehicles',{plate,name,initMiles});
+    vehicles.push(v); vehicles.sort((a,b)=>a.plate.localeCompare(b.plate));
+    closeM('mvM'); renderVehicles(); fillDropdowns(); showToast('Vehicle added ✓');
+    ['vP','vN','vM'].forEach(id=>document.getElementById(id).value='');
+  } catch(e){showToast(e.message,true);}
+}
+async function delVehicle(plate){
+  if(!confirm('Remove vehicle '+plate+'?'))return;
+  try { await api('DELETE',`/api/vehicles/${plate}`); vehicles=vehicles.filter(v=>v.plate!==plate); renderVehicles(); fillDropdowns(); showToast('Vehicle removed'); }
+  catch(e){showToast(e.message,true);}
+}
+
+// ═══════════════════════════ USERS ═════════════════════════════
+function renderUsers(){
+  document.getElementById('uBody').innerHTML=users.map(u=>`
+    <tr>
+      <td>${u.name}</td>
+      <td style="color:var(--text2)">${u.username}</td>
+      <td><span class="role-badge ${RC[u.role]}">${RL[u.role]}</span></td>
+      <td style="color:${u.status==='active'?'var(--green)':'var(--red)'}">${u.status}</td>
+      <td>
+        <button class="btn bs bsm" onclick="editUser('${u.id}')" style="margin-right:4px">Edit</button>
+        ${u.id!=='admin'?`<button class="dbtn" onclick="delUser('${u.id}')">✕</button>`:''}
+      </td>
+    </tr>`).join('');
+}
+function openAddUser(){document.getElementById('muId').value='';document.getElementById('muT').textContent='Add User';['uN','uU','uPw'].forEach(id=>document.getElementById(id).value='');document.getElementById('uR').value='driver';document.getElementById('uSt').value='active';openM('muM');}
+function editUser(id){
+  const u=users.find(x=>x.id===id);if(!u)return;
+  document.getElementById('muId').value=id;document.getElementById('muT').textContent='Edit User';
+  document.getElementById('uN').value=u.name;document.getElementById('uU').value=u.username;
+  document.getElementById('uPw').value='';document.getElementById('uR').value=u.role;document.getElementById('uSt').value=u.status;
+  openM('muM');
+}
+async function saveUser(){
+  const id=document.getElementById('muId').value;
+  const name=document.getElementById('uN').value.trim();
+  const username=document.getElementById('uU').value.trim().toLowerCase();
+  const pw=document.getElementById('uPw').value;
+  const role=document.getElementById('uR').value;
+  const status=document.getElementById('uSt').value;
+  if(!name||!username){showToast('Name and username required',true);return;}
+  try {
+    if(id){
+      const u=await api('PUT',`/api/users/${id}`,{name,username,role,status,...(pw?{password:pw}:{})});
+      const idx=users.findIndex(x=>x.id===id);if(idx>=0)users[idx]=u;
+    } else {
+      const u=await api('POST','/api/users',{name,username,password:pw||'driver123',role,status});
+      users.push(u);
+    }
+    closeM('muM'); renderUsers(); fillDropdowns(); showToast('User saved ✓');
+  } catch(e){showToast(e.message,true);}
+}
+async function delUser(id){
+  if(!confirm('Remove this user?'))return;
+  try { await api('DELETE',`/api/users/${id}`); users=users.filter(u=>u.id!==id); renderUsers(); fillDropdowns(); showToast('User removed'); }
+  catch(e){showToast(e.message,true);}
+}
+
+// ═══════════════════════════ HELPERS ═══════════════════════════
+function openM(id){document.getElementById(id).classList.add('open');}
+function closeM(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.mb').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
+function showToast(msg, isErr=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(isErr?' err':'');
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function exportCSV(){
+  const h='Date,Driver,Plate,Prev Miles,Curr Miles,Miles,Liters,Price/L,Total Cost,Added By';
+  const rows=entries.map(e=>[e.date,e.driver||'',e.plate,e.prevMiles,e.currMiles,e.miles,e.liters,e.price,e.total,e.by||''].join(','));
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent([h,...rows].join('\n'));
+  a.download='FD_Gas_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+</script>
+</body>
+</html>
