@@ -753,7 +753,7 @@ closeThemePicker();
 }
 });
 // ── App startup ───────────────────────────────────────────────
-window.onload=async function(){
+window.onload=async function(){ document.getElementById("loadingScreen").style.display="none"; document.getElementById("loginScreen").style.display="flex"; return; //
 try{
 await fetch('/api/vehicles');
 document.getElementById('loadingScreen').style.display='none';
