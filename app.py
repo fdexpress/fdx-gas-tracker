@@ -57,28 +57,43 @@ def seed_db():
         return
     with open(seed_file) as f:
         data = json.load(f)
+    # Seed users
     if not User.query.first():
         for u in data.get('users', []):
-            if not User.query.filter_by(username=u.get('username','')).first():
+            try:
                 db.session.add(User(id=u.get('id',str(uuid.uuid4())), name=u.get('name',''),
                     username=u.get('username',''), password=u.get('password','driver123'),
                     role=u.get('role','driver'), status=u.get('status','active')))
+            except: pass
         db.session.commit()
         print(f"Seeded {User.query.count()} users")
+    # Seed vehicles
     if not Vehicle.query.first():
         for v in data.get('vehicles', []):
-            if not Vehicle.query.get(v.get('plate','')):
+            try:
                 db.session.add(Vehicle(plate=v.get('plate',''), name=v.get('name',''), init_miles=v.get('initMiles',0)))
+            except: pass
         db.session.commit()
         print(f"Seeded {Vehicle.query.count()} vehicles")
+    # Seed entries in batches of 100
     if not Entry.query.first():
-        batch = [Entry(id=e.get('id',str(uuid.uuid4())), date=e.get('date',''), driver=e.get('driver',''),
-            plate=e.get('plate',''), prev_miles=e.get('prevMiles',0), curr_miles=e.get('currMiles',0),
-            miles=e.get('miles',0), liters=e.get('liters',0), price=e.get('price',0),
-            total=e.get('total',0), added_by=e.get('by','import')) for e in data.get('entries',[])]
-        db.session.bulk_save_objects(batch)
-        db.session.commit()
-        print(f"Seeded {Entry.query.count()} entries")
+        entries_data = data.get('entries', [])
+        BATCH = 100
+        for i in range(0, len(entries_data), BATCH):
+            batch = entries_data[i:i+BATCH]
+            objs = []
+            for e in batch:
+                try:
+                    objs.append(Entry(id=e.get('id',str(uuid.uuid4())), date=e.get('date',''),
+                        driver=e.get('driver',''), plate=e.get('plate',''),
+                        prev_miles=e.get('prevMiles',0), curr_miles=e.get('currMiles',0),
+                        miles=e.get('miles',0), liters=e.get('liters',0),
+                        price=e.get('price',0), total=e.get('total',0), added_by=e.get('by','import')))
+                except: pass
+            db.session.bulk_save_objects(objs)
+            db.session.commit()
+            print(f"Seeded entries batch {i//BATCH + 1}/{(len(entries_data)+BATCH-1)//BATCH}")
+        print(f"Total entries seeded: {Entry.query.count()}")
 
 @app.route('/api/login', methods=['POST'])
 def login():
