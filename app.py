@@ -60,11 +60,16 @@ def seed_db():
     # Seed users
     if not User.query.first():
         for u in data.get('users', []):
-            try:
-                db.session.add(User(id=u.get('id',str(uuid.uuid4())), name=u.get('name',''),
-                    username=u.get('username',''), password=u.get('password','driver123'),
-                    role=u.get('role','driver'), status=u.get('status','active')))
-            except: pass
+            uname = u.get('username','').lower().strip()
+            if uname and not User.query.filter_by(username=uname).first():
+                try:
+                    db.session.add(User(id=u.get('id',str(uuid.uuid4())), name=u.get('name',''),
+                        username=uname, password=u.get('password','driver123'),
+                        role=u.get('role','driver'), status=u.get('status','active')))
+                    db.session.flush()
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"Skip user {uname}: {e}")
         db.session.commit()
         print(f"Seeded {User.query.count()} users")
     # Seed vehicles
@@ -167,8 +172,11 @@ def del_user(id):
 
 # ── Run on startup (works with both gunicorn and direct) ──────
 with app.app_context():
-    db.create_all()
-    seed_db()
+    try:
+        db.create_all()
+        seed_db()
+    except Exception as e:
+        print(f"Seed error (non-fatal): {e}")
 
 @app.route('/')
 def index(): return send_from_directory('static', 'index.html')
