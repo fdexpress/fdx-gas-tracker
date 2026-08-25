@@ -150,6 +150,11 @@ def del_user(id):
     if u.username=='admin': return jsonify(error='Cannot delete main admin'), 400
     db.session.delete(u); db.session.commit(); return jsonify(ok=True)
 
+# ── Run on startup (works with both gunicorn and direct) ──────
+with app.app_context():
+    db.create_all()
+    seed_db()
+
 @app.route('/')
 def index(): return send_from_directory('static', 'index.html')
 
