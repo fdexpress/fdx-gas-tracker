@@ -753,17 +753,9 @@ closeThemePicker();
 }
 });
 // ── App startup ───────────────────────────────────────────────
-window.onload=async function(){ document.getElementById("loadingScreen").style.display="none"; document.getElementById("loginScreen").style.display="flex"; return; //
-try{
-await fetch('/api/vehicles');
-document.getElementById('loadingScreen').style.display='none';
-document.getElementById('loginScreen').style.display='flex';
-}catch{
-document.getElementById('loadingScreen').innerHTML=
-'<div style="text-align:center;color:#8b949e;padding:40px;max-width:400px">'+
-'<div style="color:#e05252;font-size:22px;margin-bottom:12px;">&#9888;&#65039; Cannot connect to server</div>'+
-'<p>Make sure the server is running. If you just deployed, wait 30 seconds and refresh.</p></div>';
-}
+window.onload=function(){
+  document.getElementById('loadingScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
 };
 // Auto-refresh data every 60 seconds
 setInterval(()=>{ if(CU) loadAll(); }, 60000);
