@@ -180,7 +180,7 @@ function doLogout(){CU=null;document.getElementById('loginScreen').style.display
 // INIT
 // ══════════════════════════════════════════════
 let SC='date',SD=-1,PG=1;const PS=50;
-function initApp(){
+async function initApp(){
 document.getElementById('hName').textContent=CU.name;
 document.getElementById('hBadge').innerHTML=`<span class="role-badge ${RC[CU.role]}">${RL[CU.role]}</span>`;
 const rpt=CAN.viewReports(CU);
