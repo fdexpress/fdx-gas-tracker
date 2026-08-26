@@ -179,6 +179,26 @@ with app.app_context():
     except Exception as e:
         print(f"Seed error (non-fatal): {e}")
 
+
+@app.route('/api/bulk_update_passwords', methods=['POST'])
+def bulk_update_passwords():
+    """One-time endpoint to update passwords from Excel data"""
+    updates = request.json.get('updates', [])
+    results = {'updated': 0, 'not_found': 0}
+    for u in updates:
+        uname = u.get('username','').lower().strip()
+        pwd = u.get('password','')
+        if not uname or not pwd:
+            continue
+        user = User.query.filter_by(username=uname).first()
+        if user:
+            user.password = pwd
+            results['updated'] += 1
+        else:
+            results['not_found'] += 1
+    db.session.commit()
+    return jsonify(results)
+
 @app.route('/')
 def index(): return send_from_directory('static', 'index.html')
 
