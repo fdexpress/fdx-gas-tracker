@@ -144,6 +144,7 @@ unlockCols:u=>u?.role==='admin',
 };
 const API='';
 let vehicles=[], entries=[], users=[];
+function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 async function apiCall(method,path,body){
 const opts={method,headers:{'Content-Type':'application/json'}};
 if(body)opts.body=JSON.stringify(body);
