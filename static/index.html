@@ -751,6 +751,61 @@ if(picker && !picker.contains(e.target) && !btn){
 closeThemePicker();
 }
 });
+
+function printEmployees(){
+  var RL={admin:'Admin',supervisor:'Supervisor',driver:'Driver'};
+  var sorted = users.slice().sort(function(a,b){
+    var rOrder={admin:0,supervisor:1,driver:2};
+    return (rOrder[a.role]||2)-(rOrder[b.role]||2)||a.name.localeCompare(b.name);
+  });
+  var rows='';
+  for(var i=0;i<sorted.length;i++){
+    var u=sorted[i];
+    var bg=u.role==='admin'?'#fff8e1':u.role==='supervisor'?'#f3e5f5':'#ffffff';
+    var roleBg=u.role==='admin'?'#f9a825':u.role==='supervisor'?'#7b1fa2':'#1565c0';
+    var roleLabel=RL[u.role]||u.role;
+    var statusColor=u.status==='active'?'#2e7d32':'#c62828';
+    var statusLabel=u.status==='active'?'Active':'Inactive';
+    rows+='<tr style="background:'+bg+'">';
+    rows+='<td style="padding:8px 10px;border-bottom:1px solid #e0e0e0">'+(i+1)+'</td>';
+    rows+='<td style="padding:8px 10px;border-bottom:1px solid #e0e0e0;font-weight:600">'+u.name+'</td>';
+    rows+='<td style="padding:8px 10px;border-bottom:1px solid #e0e0e0;font-family:monospace">'+u.username+'</td>';
+    rows+='<td style="padding:8px 10px;border-bottom:1px solid #e0e0e0;font-family:monospace;color:#c62828;font-weight:700">'+(u.password||'--')+'</td>';
+    rows+='<td style="padding:8px 10px;border-bottom:1px solid #e0e0e0;text-align:center"><span style="background:'+roleBg+';color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">'+roleLabel+'</span></td>';
+    rows+='<td style="padding:8px 10px;border-bottom:1px solid #e0e0e0;text-align:center"><span style="color:'+statusColor+';font-weight:600">'+statusLabel+'</span></td>';
+    rows+='</tr>';
+  }
+  var now=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  var admins=users.filter(function(u){return u.role==='admin';}).length;
+  var sups=users.filter(function(u){return u.role==='supervisor';}).length;
+  var drvs=users.filter(function(u){return u.role==='driver';}).length;
+  var html='<!DOCTYPE html><html><head><title>FD Express - Employee List</title><style>';
+  html+='*{margin:0;padding:0;box-sizing:border-box;}';
+  html+='body{font-family:Calibri,Arial,sans-serif;font-size:13px;color:#1a1a1a;padding:30px;}';
+  html+='@media print{body{padding:15px;}.no-print{display:none;}@page{margin:1cm;}}';
+  html+='h1{font-size:22px;color:#1a3a6a;margin-bottom:4px;}';
+  html+='.subtitle{font-size:13px;color:#666;margin-bottom:20px;}';
+  html+='table{width:100%;border-collapse:collapse;margin-top:10px;}';
+  html+='thead tr{background:#1a3a6a;}';
+  html+='thead th{color:#fff;padding:10px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;}';
+  html+='.total{margin-top:16px;font-size:12px;color:#666;}';
+  html+='.confidential{margin-top:20px;text-align:center;font-size:11px;color:#c62828;font-weight:700;letter-spacing:2px;border-top:1px solid #e0e0e0;padding-top:12px;}';
+  html+='.btn-print{background:#1a3a6a;color:#fff;border:none;padding:10px 24px;border-radius:4px;cursor:pointer;font-size:14px;margin-bottom:20px;font-weight:700;}';
+  html+='</style></head><body>';
+  html+='<button class="btn-print no-print" onclick="window.print()">Print</button>';
+  html+='<h1>FD Express Gas Tracker</h1>';
+  html+='<div class="subtitle">Employee Access List | Generated: '+now+' | Total: '+users.length+' employees</div>';
+  html+='<table><thead><tr>';
+  html+='<th style="width:40px">#</th><th>Full Name</th><th>Username</th><th>Password</th><th style="text-align:center">Role</th><th style="text-align:center">Status</th>';
+  html+='</tr></thead><tbody>'+rows+'</tbody></table>';
+  html+='<div class="total">Admins: '+admins+' | Supervisors: '+sups+' | Drivers: '+drvs+'</div>';
+  html+='<div class="confidential">CONFIDENTIAL - FOR INTERNAL USE ONLY</div>';
+  html+='</body></html>';
+  var win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
 // ── App startup ───────────────────────────────────────────────
 
 // Auto-refresh data every 60 seconds
