@@ -145,6 +145,24 @@ unlockCols:u=>u?.role==='admin',
 const API='';
 let vehicles=[], entries=[], users=[];
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function showToast(msg, isErr=false){
+  var t=document.getElementById('toast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='toast';
+    t.style.cssText='position:fixed;bottom:24px;right:24px;background:var(--surface);border-radius:8px;padding:12px 20px;font-size:13px;z-index:300;transform:translateY(80px);opacity:0;transition:all .3s;';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.style.borderColor=isErr?'var(--red)':'var(--green)';
+  t.style.border='1px solid '+(isErr?'var(--red)':'var(--green)');
+  t.style.color=isErr?'var(--red)':'var(--green)';
+  t.style.transform='translateY(0)';
+  t.style.opacity='1';
+  setTimeout(function(){t.style.transform='translateY(80px)';t.style.opacity='0';},3000);
+}
+
+
 async function apiCall(method,path,body){
 const opts={method,headers:{'Content-Type':'application/json'}};
 if(body)opts.body=JSON.stringify(body);
