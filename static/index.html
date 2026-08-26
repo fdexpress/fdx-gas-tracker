@@ -648,38 +648,50 @@ a.download = 'FDX_Backup_' + d + '.json';
 a.click();
 showToast('Backup downloaded ✓');
 }
-function doRestore(event){
+async function doRestore(event){
 const file = event.target.files[0];
 if(!file) return;
 const reader = new FileReader();
-reader.onload = function(e){
+reader.onload = async function(e){
 try {
 const data = JSON.parse(e.target.result);
-// Validate structure
-if(!data.entries || !data.vehicles){
-throw new Error('Invalid backup file — missing entries or vehicles');
+if(!data.entries){
+throw new Error('Invalid backup file — missing entries');
 }
 const entryCount = data.entries.length;
-const vehCount = data.vehicles.length;
-const userCount = (data.users||[]).length;
 if(!confirm(
-'Restore this backup?\n\n' +
-'  Entries:  ' + entryCount + '\n' +
-'  Vehicles: ' + vehCount + '\n' +
-'  Users:    ' + userCount + '\n\n' +
+'Import ' + entryCount + ' entries to the server?\n\n' +
 'Backed up: ' + (data.date ? new Date(data.date).toLocaleString() : 'unknown') + '\n\n' +
-'WARNING: This will replace ALL current data.'
+'Entries will be ADDED to the server (duplicates skipped by date+plate+miles).'
 )) return;
-// Restore
-entries = data.entries;
-vehicles = data.vehicles;
-if(data.users && data.users.length > 0) users = data.users;
-// Save to localStorage
-save();
-// Refresh UI
-fillDropdowns();
-renderStats();
-renderLog();
+
+const restSt = document.getElementById('restoreStatus');
+restSt.style.display='block';
+restSt.style.color='var(--accent)';
+restSt.textContent='Uploading entries to server...';
+
+let added=0, skipped=0, failed=0;
+// Get existing entries to check duplicates
+const existingKeys = new Set(entries.map(e=>e.date+'|'+e.plate+'|'+e.currMiles));
+
+for(let i=0; i<data.entries.length; i++){
+  const en = data.entries[i];
+  const key = en.date+'|'+en.plate+'|'+(en.currMiles||0);
+  if(existingKeys.has(key)){skipped++;continue;}
+  try{
+    const saved = await apiCall('POST','/api/entries',{
+      date:en.date, driver:en.driver||'', plate:en.plate,
+      prevMiles:en.prevMiles||0, currMiles:en.currMiles||0,
+      miles:en.miles||0, liters:en.liters||0,
+      price:en.price||0, total:en.total||0, by:en.by||'import'
+    });
+    entries.unshift(saved);
+    existingKeys.add(key);
+    added++;
+    if(i%5===0) restSt.textContent='Uploading... '+added+' added, '+skipped+' skipped';
+  }catch(err){failed++;}
+}
+renderStats(); renderLog(); fillDropdowns();
 const status = document.getElementById('restoreStatus');
 status.style.display = 'block';
 status.style.color = 'var(--green)';
