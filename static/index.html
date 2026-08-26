@@ -145,6 +145,7 @@ unlockCols:u=>u?.role==='admin',
 const API='';
 let vehicles=[], entries=[], users=[];
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function save(){/* server handles persistence */}
 function showToast(msg, isErr=false){
   var t=document.getElementById('toast');
   if(!t){
