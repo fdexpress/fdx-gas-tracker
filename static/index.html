@@ -282,7 +282,7 @@ const el=document.getElementById(id);el.tagName==='SELECT'?el.selectedIndex=0:el
 document.getElementById('fDate').value=new Date().toISOString().slice(0,10);
 if(CU.role==='driver'){const s=document.getElementById('fDriver');for(let i=0;i<s.options.length;i++){if(s.options[i].value===CU.name){s.value=CU.name;break;}}}
 }
-function addEntry(){
+async function addEntry(){
 const date=document.getElementById('fDate').value;
 const driver=document.getElementById('fDriver').value;
 const plate=document.getElementById('fPlate').value;
@@ -290,11 +290,17 @@ const prev=parseFloat(document.getElementById('fPrev').value)||0;
 const curr=parseFloat(document.getElementById('fCurr').value)||0;
 const liters=parseFloat(document.getElementById('fLiters').value)||0;
 const price=parseFloat(document.getElementById('fPrice').value)||0;
-if(!date||!plate||!curr){alert('Date, Plate and Current Miles are required.');return;}
+if(!date||!plate||!curr){showToast('Date, Plate and Current Miles are required',true);return;}
 const miles=parseFloat(document.getElementById('fMiles').value)||Math.max(0,curr-prev);
 const total=parseFloat(document.getElementById('fTotal').value)||liters*price;
-entries.unshift({id:gid(),date,driver,plate,prevMiles:Math.round(prev),currMiles:Math.round(curr),miles:Math.round(miles*10)/10,liters:Math.round(liters*1000)/1000,price:Math.round(price*1000)/1000,total:Math.round(total*1000000)/1000000,by:CU.username});
-save();clearForm();renderStats();renderLog();
+const addBtn=document.getElementById('addBtn');
+if(addBtn)addBtn.disabled=true;
+try{
+const saved=await apiCall('POST','/api/entries',{date,driver,plate,prevMiles:Math.round(prev),currMiles:Math.round(curr),miles:Math.round(miles*10)/10,liters:Math.round(liters*1000)/1000,price:Math.round(price*1000)/1000,total:Math.round(total*1000000)/1000000,by:CU.username});
+entries.unshift(saved);
+clearForm();renderStats();renderLog();showToast('Entry saved \u2713');
+}catch(e){showToast('Error saving: '+e.message,true);}
+if(addBtn)addBtn.disabled=false;
 }
 async function delEntry(id){
 if(!CAN.delEntry(CU))return;
