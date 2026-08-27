@@ -191,9 +191,15 @@ def del_user(id):
 with app.app_context():
     try:
         db.create_all()
-        seed_db()
+        # Only seed if database is COMPLETELY empty (first-ever startup)
+        # This protects all user-added data from ever being overwritten
+        if not Entry.query.first() and not User.query.first():
+            print("Empty database detected - seeding initial data")
+            seed_db()
+        else:
+            print(f"Database has data ({Entry.query.count()} entries) - skipping seed")
     except Exception as e:
-        print(f"Seed error (non-fatal): {e}")
+        print(f"Startup error (non-fatal): {e}")
 
 
 @app.route('/api/bulk_update_passwords', methods=['POST'])
