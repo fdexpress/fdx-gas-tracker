@@ -122,6 +122,22 @@ def add_entry():
     db.session.add(e); db.session.commit()
     return jsonify(e.to_dict()), 201
 
+@app.route('/api/entries/<id>', methods=['PUT'])
+def update_entry(id):
+    e = Entry.query.get_or_404(id)
+    d = request.json
+    e.date = d.get('date', e.date)
+    e.driver = d.get('driver', e.driver)
+    e.plate = d.get('plate', e.plate)
+    e.prev_miles = d.get('prevMiles', e.prev_miles)
+    e.curr_miles = d.get('currMiles', e.curr_miles)
+    e.miles = d.get('miles', e.miles)
+    e.liters = d.get('liters', e.liters)
+    e.price = d.get('price', e.price)
+    e.total = d.get('total', e.total)
+    db.session.commit()
+    return jsonify(e.to_dict())
+
 @app.route('/api/entries/<id>', methods=['DELETE'])
 def del_entry(id):
     e = Entry.query.get_or_404(id); db.session.delete(e); db.session.commit()
