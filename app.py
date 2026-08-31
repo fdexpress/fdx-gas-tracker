@@ -44,8 +44,9 @@ class Vehicle(db.Model):
     plate      = db.Column(db.String(20), primary_key=True)
     name       = db.Column(db.String(120))
     init_miles = db.Column(db.Integer, default=0)
+    status     = db.Column(db.String(20), default='active')
     def to_dict(self):
-        return dict(plate=self.plate, name=self.name, initMiles=self.init_miles)
+        return dict(plate=self.plate, name=self.name, initMiles=self.init_miles, status=self.status or 'active')
 
 class Entry(db.Model):
     id         = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -90,7 +91,7 @@ def seed_db():
     if not Vehicle.query.first():
         for v in data.get('vehicles', []):
             try:
-                db.session.add(Vehicle(plate=v.get('plate',''), name=v.get('name',''), init_miles=v.get('initMiles',0)))
+                db.session.add(Vehicle(plate=v.get('plate',''), name=v.get('name',''), init_miles=v.get('initMiles',0), status=v.get('status','active')))
             except: pass
         db.session.commit()
         print(f"Seeded {Vehicle.query.count()} vehicles")
@@ -164,9 +165,19 @@ def get_vehicles():
 def add_vehicle():
     d = request.json
     if Vehicle.query.get(d['plate'].upper()): return jsonify(error='Plate already exists'), 400
-    v = Vehicle(plate=d['plate'].upper(), name=d.get('name',''), init_miles=d.get('initMiles',0))
+    v = Vehicle(plate=d['plate'].upper(), name=d.get('name',''), init_miles=d.get('initMiles',0), status=d.get('status','active'))
     db.session.add(v); db.session.commit()
     return jsonify(v.to_dict()), 201
+
+@app.route('/api/vehicles/<plate>', methods=['PUT'])
+def update_vehicle(plate):
+    v = Vehicle.query.get_or_404(plate)
+    d = request.json
+    if 'name' in d: v.name = d['name']
+    if 'initMiles' in d: v.init_miles = d['initMiles']
+    if 'status' in d: v.status = d['status']
+    db.session.commit()
+    return jsonify(v.to_dict())
 
 @app.route('/api/vehicles/<plate>', methods=['DELETE'])
 def del_vehicle(plate):
@@ -204,6 +215,18 @@ def del_user(id):
 with app.app_context():
     try:
         db.create_all()
+        # Safe migration: add status column to vehicle table if missing
+        try:
+            from sqlalchemy import text, inspect
+            insp = inspect(db.engine)
+            cols = [c['name'] for c in insp.get_columns('vehicle')]
+            if 'status' not in cols:
+                db.session.execute(text("ALTER TABLE vehicle ADD COLUMN status VARCHAR(20) DEFAULT 'active'"))
+                db.session.execute(text("UPDATE vehicle SET status='active' WHERE status IS NULL"))
+                db.session.commit()
+                print("Added status column to vehicle table")
+        except Exception as mig_err:
+            print(f"Vehicle migration note: {mig_err}")
         # Only seed if database is COMPLETELY empty (first-ever startup)
         # This protects all user-added data from ever being overwritten
         if not Entry.query.first() and not User.query.first():
