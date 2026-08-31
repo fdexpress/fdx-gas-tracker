@@ -11,10 +11,12 @@ CORS(app)
 
 DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///fdx.db')
 if DATABASE_URL.startswith('postgres://'):
-    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql+psycopg://', 1)
+elif 'postgresql' in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace('postgresql://', 'postgresql+psycopg://', 1)
 
 # CRITICAL: Log which database we're actually using
-if DATABASE_URL.startswith('postgresql://'):
+if 'postgresql' in DATABASE_URL:
     print("=" * 60)
     print("USING POSTGRESQL - data will persist across deploys")
     print("=" * 60)
