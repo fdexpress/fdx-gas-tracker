@@ -13,6 +13,17 @@ DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///fdx.db')
 if DATABASE_URL.startswith('postgres://'):
     DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
 
+# CRITICAL: Log which database we're actually using
+if DATABASE_URL.startswith('postgresql://'):
+    print("=" * 60)
+    print("USING POSTGRESQL - data will persist across deploys")
+    print("=" * 60)
+else:
+    print("!" * 60)
+    print("WARNING: USING SQLITE - DATA WILL BE LOST ON DEPLOY!")
+    print("DATABASE_URL env var is not set correctly!")
+    print("!" * 60)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
